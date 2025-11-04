@@ -23,35 +23,329 @@ L'applicazione dovrà permettere le seguenti funzionaloità principali:
 Oltre alle funzionalità principali, l'applicazione dovrà garantire una buona esperienza d'uso e un funzionamento stabile. In particolare:
 - Semplicità d'uso: interfaccia chiara e intuitiva, pensata per studenti che devono orientarsi facilmetne tra le sezioni
 - Affidabilità: i dati inseriti dagli utenti devono restare coerenti e sempre disponibili
-
+  
 ## Analisi e modello del dominio
 
-L'applicazione unibo_tutoring dovrà gestire le attività di tutoraggio tra studenti dell'Università di Bologna.
-Il sistema ha lo scopo di favorire la collaborazione e il supporto reciproco tra studenti, permettendo a ciascuno di offrire o richiedere aiuto su specicìfiche materie universitarie e di accumulare crediti formativi in base alle ore di tutoraggio svolte.
-Il dominio applicativo è costituito da una serie di entità e relazioni che descrivono le interazioni fondamentali tra gli studenti e gli elementi che compongono il servizio.
-Ogni studente può assumere ruoli diversi a seconda del contesto: tutor, quando offre supporto su una materia, o studente, quando richiede aiuto.
-Gli utenti interagiscono tramite la pubblicazione di box di tutoraggio, la creazione di sessioni di tutoraggio, e la comunicazine diretta attraverso una chat privata.
+Il sistema di tutoring gestisce studenti e tutor che possono proporre,
+accettare o confermare sessioni di tutoraggio.  
+Le entità principali del dominio sono `Utente`, `OffertaRichiesta`, `Sessione`, e `Credito`.  
+Lo schema seguente rappresenta i rapporti concettuali tra queste entità.
 
-Gli elementi principali del dominio sono:
-- Utente: rappresenta uno studente iscritto all'Università di Bologna.
-- BoxTutoraggio: rappresenta un'offerta o una richiesta di tutoraggio. Contiene informazioni sulla materia e una breve descrizione.
-- Sessione: indica un incontro di tutoraggio tra due utenti, caratterizzato da data, orario, durata e stato (proposta, confermata, conclusa)
-- Chat: rappresenta il canale di ocmunicazione tra gli utenti che partecipano a una sessione.
-- Credito: rappresenta il numero di ore e CFU accumulati dal tutor per le attività svolte.
+```mermaid
+classDiagram
+    %% ============================
+    %% UML DEL DOMINIO - TUTORING APP
+    %% ============================
 
-La difficoltà  primaria sarà quella di gestire la coerenza dei ruoli tra offerta e richiesta, garantendo che le sessioni siano correttamente associate e confermate da entrambe le parti.
-Un'ulteriore complessità riguarda il calcolo e la validazione dei crediti formativi, che devono riflettere con precisione le ore effettivamente svolte.
-Infine, la gestione delle comunicazioni dirette e della prenotazione delle sessioni richiedono particolare attenzione per evitare sovrapposizioni di sessioni e per mantenere un sistema robusto e affidabile.
+    class Utente {
+        +id
+        +nome
+        +email
+        +ruolo  // "tutor" o "studente"
+    }
+
+    class OffertaRichiesta {
+        +id
+        +tipo  // "offerta" o "richiesta"
+        +materia
+        +descrizione
+        +dataCreazione
+    }
+
+    class Sessione {
+        +id
+        +data
+        +ora
+        +durataOre
+        +stato  // proposta, confermata, sospesa
+    }
+
+    class Credito {
+        +id
+        +oreTotali
+    }
+
+    %% ============================
+    %% RELAZIONI DEL DOMINIO
+    %% ============================
+    Utente "1" --> "*" OffertaRichiesta : crea> 
+    OffertaRichiesta "1" --> "*" Sessione : origina> 
+    Sessione "1" --> "2" Utente : coinvolge>
+    Sessione "1" --> "1" Feedback : genera>
+    Utente "1" --> "1" Credito : possiede>
+
+```
+
+
+
+### Elementi positivi
+
+### Elementi negativi
+
+#altro schema mancante 
 
 # Design
 
 ## Architettura
-L'architettura dell'applicazione unibo_totoring segue il pattern MVC (Model-View-Controller).
-In questa architettura, le tre componenti principali (Model, View e Controller) cooperano per gestire le funzinalità di tutoraggio, la persistenza dei dati e l'interazione con l'utente.
-- Model: rappresenta il dominio applicativo: gestisce le entità principali (Utente, boxTutoraggio, Sessione, Chat, Credito) e le relazioni tra loro. Si occupa della logica dei dati, del calcolo dei crediti e dello ststo delle sessioni.
-- Controller: coordina le azioni dell'utente e media tra Model e View. È responsabile del flusso delle operazioni, come la creazione di un box di tutoraggio, la proposta di una sessione, o l'invio di messaggi in chat.
-- View: gestisce la parte grafica e interattiva dell'applicazione, mostrando i dati ricevuti dal Controller e aggiornandosi in base alle modifiche del Model.
 
-  Questa suddivisione consente di mantenere il codice modulare, facilitando la gestione delle diverse sezioni dell'app (Dashboard, Chat, Profilo, ecc...) e rendendo possibile l'estensione futura con nuove funzionalità, come ad esempio l'integrazione con Teams.
+### Elementi positivi
+
+### Elementi negativi
+## Design
+
+### Visione architetturale
+
+L’applicazione di tutoring segue un’architettura di tipo **MVC**  
+(Model–View–Controller), ispirata al pattern **ECB** (Entity–Control–Boundary).  
+Il frontend gestisce l’interfaccia e la comunicazione con l’utente,  
+il controller coordina le operazioni principali e interagisce con i gestori di dominio,  
+mentre il database garantisce la persistenza delle informazioni.
+
+```mermaid
+classDiagram
+    %% =====================================
+    %% UML ARCHITETTURALE - TUTORING APP
+    %% =====================================
+
+    class Frontend {
+        +mostraInterfaccia()
+        +inviaRichiesta()
+        +riceviRisposta()
+    }
+    <<boundary>> Frontend
+
+    class Controller {
+        +gestisciLogin()
+        +gestisciPrenotazioni()
+        +gestisciConferme()
+    }
+    <<control>> Controller
+
+    class UserManager {
+        +autenticaUtente()
+        +gestisciProfilo()
+    }
+    <<entity>> UserManager
+
+    class SessionManager {
+        +creaSessione()
+        +aggiornaStato()
+        +verificaConferme()
+    }
+    <<entity>> SessionManager
+
+    class DBService {
+        +salvaDati()
+        +recuperaDati()
+    }
+    <<entity>> DBService
+
+    %% =========================
+    %% RELAZIONI ARCHITETTURALI
+    %% =========================
+    Frontend --> Controller : invia azioni >
+    Controller --> UserManager : gestisce account >
+    Controller --> SessionManager : gestisce sessioni >
+    Controller --> DBService : richiede dati >
+    UserManager --> DBService : persistenza utenti >
+    SessionManager --> DBService : persistenza sessioni >
+```
+
+## Design dettagliato
+## Design dettagliato – Niki Hammond
+
+Di seguito vengono illustrati tre aspetti specifici del design della piattaforma di tutoring:
+1. La gestione e visualizzazione del profilo utente.  
+2. La logica del sistema di crediti per i tutor.  
+3. L’ottimizzazione responsive dell’interfaccia utente.
+
+---
+
+### Gestione del profilo utente
+
+#### Problema
+Era necessario progettare una sezione che permettesse a ogni utente di modificare i propri dati (nome, email, descrizione, materie insegnate) in modo sicuro e sincronizzato con il database.  
+Il sistema doveva separare chiaramente la **logica di business** (gestione dati e validazioni) dalla **presentazione grafica**, mantenendo il profilo aggiornato in tempo reale dopo ogni modifica.
+
+#### Soluzione
+È stato applicato il **pattern MVC**:  
+- Il *Model* (`User`) rappresenta i dati persistenti.  
+- Il *Controller* (`ProfileController`) coordina le operazioni tra view e model.  
+- La *View* (`ProfileView`) mostra l’interfaccia grafica e riceve input utente.  
+
+Questa separazione migliora il riuso e semplifica l’estensione futura, ad esempio per aggiungere nuove sezioni (badge, statistiche, ecc.).
+
+#### UML
+
+```mermaid
+classDiagram
+    %% ====================================
+    %% UML DESIGN DETTAGLIATO - PROFILO UTENTE
+    %% ====================================
+
+    class User {
+        +id
+        +nome
+        +email
+        +descrizione
+        +materie
+        +aggiornaProfilo()
+    }
+
+    class ProfileView {
+        +mostraProfilo()
+        +inviaModifica()
+        +riceviConferma()
+    }
+    <<boundary>> ProfileView
+
+    class ProfileController {
+        +caricaProfilo()
+        +salvaModifica()
+        +validaInput()
+    }
+    <<control>> ProfileController
+
+    class UserRepository {
+        +getById()
+        +updateUser()
+    }
+    <<entity>> UserRepository
+
+    %% RELAZIONI
+    ProfileView --> ProfileController : invia azioni >
+    ProfileController --> User : aggiorna dati >
+    ProfileController --> UserRepository : persistenza >
+```
+
+#### Pattern utilizzato
+Applicato **MVC / ECB** per garantire separazione tra livelli e ridurre le dipendenze.  
+`ProfileController` funge da *control*, `ProfileView` da *boundary*, `User` e `UserRepository` da *entity*.
+
+---
+
+### Sistema crediti e riconoscimenti tutor
+
+#### Problema
+Era necessario introdurre una logica che riconoscesse i tutor più attivi o affidabili, calcolando automaticamente i crediti in base alle sessioni confermate.  
+Il sistema doveva reagire ai cambiamenti dello stato di una sessione senza modificare la classe `Sessione`.
+
+#### Soluzione
+È stato adottato il **pattern Observer**:  
+`Sessione` notifica gli osservatori quando il suo stato passa a “confermata”.  
+Il servizio `CreditService` ascolta gli eventi e aggiorna i crediti del tutor, senza introdurre dipendenze dirette.
+
+#### UML
+
+```mermaid
+classDiagram
+    %% ======================================
+    %% UML DESIGN DETTAGLIATO - SISTEMA CREDITI
+    %% ======================================
+
+    class Sessione {
+        +id
+        +stato
+        +notificaOsservatori()
+        +verificaConferme()
+    }
+
+    class CreditService {
+        +assegnaCrediti(Sessione)
+        +aggiornaLivello()
+    }
+
+    class SessionObserver {
+        +update(Sessione)
+    }
+    <<interface>> SessionObserver
+
+    class Tutor {
+        +id
+        +crediti
+        +livello
+        +riceviRiconoscimento()
+    }
+
+    %% RELAZIONI
+    Sessione o-- SessionObserver : notifica >
+    SessionObserver <|.. CreditService : osserva >
+    CreditService --> Tutor : aggiorna crediti >
+ ```
+
+
+
+
+
+
+
+#### Pattern utilizzato
+**Observer Pattern**  
+`Sessione` è l’observable, `CreditService` è l’observer.  
+Quando una sessione viene confermata, `CreditService` riceve la notifica e incrementa i crediti del tutor associato, aggiornandone il livello (es. *Tutor Affidabile*).
+
+---
+
+### Ottimizzazione interfaccia responsive
+
+#### Problema
+L’interfaccia utente doveva adattarsi automaticamente a dispositivi differenti (desktop, tablet, smartphone) mantenendo la stessa esperienza di navigazione e leggibilità.  
+Era necessario ridurre la duplicazione del codice UI e centralizzare la logica di adattamento.
+
+#### Soluzione
+È stato impiegato il **pattern Strategy** per la gestione dinamica dei layout.  
+L’interfaccia `LayoutStrategy` definisce il metodo `adatta()`, implementato da strategie diverse (`DesktopLayout`, `MobileLayout`, `TabletLayout`).  
+In base alle dimensioni dello schermo, l’applicazione seleziona automaticamente la strategia appropriata.
+
+#### UML
+
+```mermaid
+classDiagram
+    %% ========================================
+    %% UML DESIGN DETTAGLIATO - LAYOUT RESPONSIVE
+    %% ========================================
+
+    class LayoutStrategy {
+        +adatta()
+    }
+    <<interface>> LayoutStrategy
+
+    class DesktopLayout {
+        +adatta()
+    }
+
+    class MobileLayout {
+        +adatta()
+    }
+
+    class TabletLayout {
+        +adatta()
+    }
+
+    class UIManager {
+        +impostaStrategia(LayoutStrategy)
+        +ridimensiona()
+    }
+
+    %% RELAZIONI
+    LayoutStrategy <|.. DesktopLayout
+    LayoutStrategy <|.. MobileLayout
+    LayoutStrategy <|.. TabletLayout
+    UIManager --> LayoutStrategy : usa >
+```
+
+### Elementi positivi
+### Elementi negativi
+
+
+
+
+### Esempio minimale (e quindi parziale) di sezione di progetto con UML ben realizzati
+#### Personalità intercambiabili
+
+
+
+
+
 
 
